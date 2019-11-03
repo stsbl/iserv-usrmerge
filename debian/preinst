@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+if [ "$1" = "install" ]
+then
+  # Disable automatic run in postinst script by usrmerge
+  echo 'usrmerge usrmerge/autoconvert boolean false' | debconf-set-selections
+fi
+
+#DEBHELPER#

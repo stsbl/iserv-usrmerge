@@ -1,0 +1,37 @@
+Test "cleanup before usrmerge"
+  grep -q '^80usrmerge_cleanup$' /var/lib/iserv/config/update.log
+  ---
+  # already converted system, nothing todo here
+  if [ "$(readlink -f /lib)" = '/usr/lib' ]
+  then
+    echo 80usrmerge_cleanup >> /var/lib/iserv/config/update.log
+    exit 0
+  fi
+
+  ERR=0
+  /usr/share/iserv/upgrade/usrmerge_cleanup-duplicates /bin /usr/bin >&2 || let ERR++
+  /usr/share/iserv/upgrade/usrmerge_cleanup-duplicates /sbin /usr/sbin >&2 || let ERR++
+  if [ "$ERR" -gt 0 ]
+  then
+    exit 1
+  fi
+  echo 80usrmerge_cleanup >> /var/lib/iserv/config/update.log
+
+Test "usrmerge"
+  grep -q '^80usrmerge_merge$' /var/lib/iserv/config/update.log
+  ---
+  if ! grep -q '^80usrmerge_cleanup$' /var/lib/iserv/config/update.log
+  then
+    echo "Cleanup did not run properly. Aborting." >&1
+    exit 1
+  fi
+  # already converted system, nothing todo here
+  if [ "$(readlink -f /lib)" = '/usr/lib' ]
+  then
+    echo 80usrmerge_merge >> /var/lib/iserv/config/update.log
+    exit 0
+  fi
+  /usr/lib/convert-usrmerge &&
+     /usr/lib/convert-etc-shells &&
+     echo 80usrmerge_merge >> /var/lib/iserv/config/update.log
+

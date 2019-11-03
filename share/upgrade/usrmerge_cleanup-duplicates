@@ -1,0 +1,55 @@
+#!/bin/bash
+set -e
+
+One="$1"
+Two="$2"
+
+if [ -z "$One" ] || [ -z "$Two" ]
+then
+  echo "Usage: $0 first-directory second-directory" >&2
+  echo "(e.g. $0 /bin /usr/bin)" >&2
+  exit 1
+fi
+
+ERR=0
+
+for prg in "$One"/*
+do
+  prg_short="$(basename "$prg")"
+  counterpart="$Two/$prg_short"
+  if [ -f "$counterpart" ]
+  then
+    # These binaries must not be migrated as there are required to run usrmerge
+    if [ "$prg" = "/bin/sh" ] || [ "$prg" = "/bin/bash" ] || [ "$prg" = "/bin/cp" ]
+    then
+      continue
+    # /usr/* counterpart pointing to /*
+    elif [ -L "$counterpart" ] && [ "$(readlink "$counterpart")" = "$prg" ]
+    then
+      rm -fv "$counterpart"  
+    # /* counterpart pointing to /usr/*
+    elif [ -L "$prg" ] && [ "$(readlink "$prg")" = "$counterpart" ]
+    then
+      rm -fv "$prg" 
+    # Symlink managed by update-alternatives
+    elif [ -L "$prg" ] && [ -L "$counterpart" ] &&
+        [ "$(readlink "$prg")" = "$(readlink "$counterpart")" ]
+    then
+      rm -fv "$prg"
+    elif dpkg -S "$prg" &> /dev/null && ! dpkg -S "$counterpart" &> /dev/null
+    then
+      rm -f "$counterpart"
+    elif ! dpkg -S "$prg" &> /dev/null && dpkg -S "$counterpart" &> /dev/null
+    then
+      rm -f "$prg"
+    else
+      echo "Conflict: Both $prg and $counterpart are part of a debian package or an ambiguous symlink." >&2
+      let ERR++
+    fi
+  fi
+done
+
+if [ "$ERR" -gt 0 ]
+then
+  exit 1
+fi
