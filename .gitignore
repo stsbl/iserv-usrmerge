@@ -1,0 +1,6 @@
+debian/stsbl-iserv-usrmerge/*
+debian/stsbl-iserv-usrmerge.substvars
+debian/stsbl-iserv-usrmerge.debhelper.log
+debian/files
+debian/debhelper-build-stamp
+debian/*.debhelper
